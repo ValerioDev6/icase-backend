@@ -6,7 +6,14 @@ import { GoogleRecaptchaFilter } from './auth/filter/google-recaptcha-filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  app.enableCors({
+    origin: [
+      'http://localhost:4200', // tu frontend local
+      'https://icase-frontend.onrender.com', // tu frontend en producción
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
 
   const config = new DocumentBuilder()
     .setTitle('Cats example')
