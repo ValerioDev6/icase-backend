@@ -1,5 +1,4 @@
 # compiled output
-prisma
 /dist
 /node_modules
 /build
