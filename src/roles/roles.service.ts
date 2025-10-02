@@ -1,12 +1,13 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateRoleDto } from './dto/create-role.dto';
-import { UpdateRoleDto } from './dto/update-role.dto';
+import { CreatePermisoDto, CreateRoleDto } from './dto/create-role.dto';
+import { UpdatePermisoDto, UpdateRoleDto } from './dto/update-role.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from '../common/dtos/pagination.dto';
 import { Prisma } from '@prisma/client';
@@ -32,6 +33,45 @@ export class RolesService {
       this.handleExceptions(error);
     }
   }
+
+  async createPermiso(createPermisoDto: CreatePermisoDto) {
+    try {
+      const existingPermiso = await this.prisma.tb_permiso.findFirst({
+        where: {
+          id_rol: createPermisoDto.id_rol,
+          id_modulo: createPermisoDto.id_modulo,
+          estado: 1,
+        },
+      });
+
+      if (existingPermiso) {
+        throw new ConflictException('Ya existe un permiso para ese rol y modulo');
+      }
+
+      const newPermiso = await this.prisma.tb_permiso.create({
+        data: {
+          ...createPermisoDto,
+        },
+      });
+      return newPermiso;
+    } catch (error) {
+      this.handleExceptions(error);
+    }
+  }
+
+  async findAllComboModulos() {
+    try {
+      const modulo = await this.prisma.tb_modulo.findMany({
+        orderBy: {
+          nombre_modulo: 'asc',
+        },
+      });
+      return modulo;
+    } catch (error) {
+      this.handleExceptions(error);
+    }
+  }
+
   async findAllCombo() {
     try {
       const roles = await this.prisma.tb_rol.findMany({
@@ -52,9 +92,18 @@ export class RolesService {
         this.prisma.tb_rol.findMany({
           skip: (page - 1) * limit,
           take: limit,
-          orderBy: { nombre_rol: 'asc' },
+          orderBy: {
+            nombre_rol: 'asc',
+          },
           where: {
             OR: [{ nombre_rol: { contains: search } }, { descripcion: { contains: search } }],
+          },
+          include: {
+            tb_permiso: {
+              include: {
+                tb_modulo: true,
+              },
+            },
           },
         }),
         this.prisma.tb_rol.count({
@@ -81,7 +130,6 @@ export class RolesService {
       this.handleExceptions(error);
     }
   }
-
   async findOne(id: string) {
     try {
       const role = await this.prisma.tb_rol.findUnique({
@@ -93,6 +141,41 @@ export class RolesService {
       }
 
       return role;
+    } catch (error) {
+      this.handleExceptions(error);
+    }
+  }
+
+  async finOnePermiso(id: string) {
+    try {
+      const permiso = await this.prisma.tb_permiso.findUnique({
+        where: { id_permiso: id },
+      });
+
+      if (!permiso) {
+        throw new NotFoundException(`No existe el id: ${id}`);
+      }
+
+      return permiso;
+    } catch (error) {}
+  }
+
+  async updatePermiso(id: string, updatePermisoDto: UpdatePermisoDto) {
+    try {
+      const existingPermisos = this.prisma.tb_permiso.findUnique({
+        where: { id_permiso: id },
+      });
+
+      if (!existingPermisos) {
+        throw new NotFoundException(`Permisos con el ${id} no existe`);
+      }
+
+      const updatedRole = await this.prisma.tb_permiso.update({
+        where: { id_permiso: id },
+        data: { ...updatePermisoDto },
+      });
+
+      return updatedRole;
     } catch (error) {
       this.handleExceptions(error);
     }
@@ -114,6 +197,26 @@ export class RolesService {
       });
 
       return updatedRole;
+    } catch (error) {
+      this.handleExceptions(error);
+    }
+  }
+
+  async removePermiso(id: string) {
+    try {
+      const permiso = await this.prisma.tb_permiso.findUnique({
+        where: { id_permiso: id },
+      });
+
+      if (!permiso) {
+        throw new NotFoundException(`Persmiso with ID: ${id} not found`);
+      }
+      await this.prisma.tb_permiso.delete({
+        where: { id_permiso: id },
+      });
+      return {
+        message: `Permiso con el id: ${id} eliminado`,
+      };
     } catch (error) {
       this.handleExceptions(error);
     }

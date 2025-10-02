@@ -7,6 +7,10 @@ import { getCategoriasReport } from '../reports/pdf/categorias.report';
 import { getComprasReport } from 'src/reports/pdf/compras_pdf.report';
 import { getProveedoresReport } from 'src/reports/pdf/proveedor.report';
 import { getVentasReport } from 'src/reports/pdf/ventas.report';
+import { getKardexReport } from 'src/reports/pdf/kardex-report-pdf';
+import { getClienteReport } from 'src/reports/pdf/clientes.report';
+import { getVentaTicket } from 'src/reports/pdf/ventas_ticket.report';
+import { getPersonalReportPdf } from 'src/reports/pdf/personal.report';
 
 @Injectable()
 export class BasicReportsService {
@@ -210,6 +214,124 @@ export class BasicReportsService {
     } catch (error) {
       console.error('Error generating Sales PDF:', error);
       throw new Error('Failed to generate Sales PDF report');
+    }
+  }
+
+  // Método async para generar el PDF de Kardex
+  async getKardexReportPdf() {
+    try {
+      const kardex = await this.prisma.tb_kardex.findMany({
+        include: {
+          tb_productos: {
+            select: {
+              nombre_producto: true,
+            },
+          },
+        },
+      });
+
+      const docDefinition = getKardexReport({ kardex });
+      return this.printerService.createPdf(docDefinition);
+    } catch (error) {
+      console.error('Error generating Kardex PDF:', error);
+      throw new Error('Failed to generate Kardex PDF report');
+    }
+  }
+
+  // Función del servicio en NestJS
+  async getClienteReportPdf() {
+    try {
+      const clientes = await this.prisma.tb_cliente.findMany({
+        include: {
+          tb_personas: {
+            select: {
+              nombres: true,
+            },
+          },
+        },
+      });
+
+      const docDefinition = getClienteReport({ clientes });
+      return this.printerService.createPdf(docDefinition);
+    } catch (error) {
+      console.error('Error generating Clientes PDF:', error);
+      throw new Error('Failed to generate Clientes PDF report');
+    }
+  }
+
+  async getPersonalReport() {
+    try {
+      // 1. Obtener datos de personal con Prisma
+      const personal = await this.prisma.tb_personal.findMany({
+        select: {
+          id_personal: true,
+          estado: true,
+          id_rol: true,
+          // No seleccionamos datos sensibles como email o contraseña
+          tb_personas: {
+            select: {
+              nombres: true,
+            },
+          },
+          tb_rol: {
+            select: {
+              nombre_rol: true,
+            },
+          },
+        },
+        orderBy: {
+          tb_personas: {
+            nombres: 'asc',
+          },
+        },
+      });
+
+      // 2. Generar el reporte
+      const docDefinition = getPersonalReportPdf({ personal });
+
+      // 3. Crear y retornar el PDF
+      return this.printerService.createPdf(docDefinition);
+    } catch (error) {
+      console.error('Error al generar reporte de personal:', error);
+      throw new Error('Error al generar el reporte de personal');
+    }
+  }
+
+  // Función del servicio en NestJS
+  async getVentaTicketPdf(idVenta: string) {
+    try {
+      const venta = await this.prisma.tb_ventas.findUnique({
+        where: { id_venta: idVenta },
+        include: {
+          tb_cliente: {
+            include: {
+              tb_personas: true,
+            },
+          },
+          tb_personal: {
+            include: {
+              tb_personas: true,
+            },
+          },
+          tb_metodo_pago: true,
+        },
+      });
+
+      if (!venta) {
+        throw new Error('Venta no encontrada');
+      }
+
+      const docDefinition = getVentaTicket({
+        venta,
+        nombreEmpresa: 'Icase Store',
+        direccionEmpresa: 'Av. Grau Puesto 26',
+        rucEmpresa: '20123456789',
+      });
+
+      return this.printerService.createPdf(docDefinition);
+    } catch (error) {
+      console.error('Error generating Venta Ticket PDF:', error);
+      throw new Error('Failed to generate Venta Ticket PDF');
     }
   }
 }

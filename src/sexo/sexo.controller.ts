@@ -1,7 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { SexoService } from './sexo.service';
-
+import { SkipThrottle } from '@nestjs/throttler';
+@SkipThrottle()
 @Controller('sexo')
 export class SexoController {
   constructor(private readonly sexoService: SexoService) {}

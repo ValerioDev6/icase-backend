@@ -3,7 +3,8 @@ import { DireccionService } from './direccion.service';
 import { CreateDireccionDto } from './dto/create-direccion.dto';
 import { UpdateDireccionDto } from './dto/update-direccion.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
-
+import { SkipThrottle } from '@nestjs/throttler';
+@SkipThrottle()
 @Controller('direccion')
 export class DireccionController {
   constructor(private readonly direccionService: DireccionService) {}

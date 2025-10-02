@@ -2,7 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { TipoTelefonoService } from './tipo-telefono.service';
 import { CreateTipoTelefonoDto } from './dto/create-tipo-telefono.dto';
 import { UpdateTipoTelefonoDto } from './dto/update-tipo-telefono.dto';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Controller('tipo-telefono')
 export class TipoTelefonoController {
   constructor(private readonly tipoTelefonoService: TipoTelefonoService) {}

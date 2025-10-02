@@ -6,12 +6,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateKardexDto } from './dto/create-kardex.dto';
-import { UpdateKardexDto } from './dto/update-kardex.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { Prisma } from '@prisma/client';
 import { FilterKardexDto } from 'src/common/dtos/pagination-kardex.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateKardexDto } from './dto/create-kardex.dto';
+import { UpdateKardexDto } from './dto/update-kardex.dto';
 
 @Injectable()
 export class KardexService {

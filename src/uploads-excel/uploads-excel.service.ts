@@ -23,6 +23,15 @@ export class UploadsExcelService {
 
       this.logger.log(`Registros parseados: ${records.length}`);
 
+      // Validar duplicados antes de la inserción
+      const duplicates = this.findDuplicates(records);
+      if (duplicates.length > 0) {
+        throw new BadRequestException({
+          message: 'Se encontraron registros duplicados',
+          duplicates: duplicates,
+        });
+      }
+
       // Preparar datos para inserción masiva
       const productosParaInsertar = records.map((record) => ({
         nombre_producto: record.nombre_producto,
@@ -41,15 +50,33 @@ export class UploadsExcelService {
       // Inserción masiva
       const result = await this.prisma.tb_productos.createMany({
         data: productosParaInsertar,
-        skipDuplicates: true,
       });
 
       this.logger.log(`Productos insertados: ${result.count}`);
-
       return result;
     } catch (error) {
       this.logger.error('Error al procesar archivo', error.stack);
-      throw new BadRequestException('Error al procesar el archivo');
+      throw error;
     }
+  }
+
+  // Método para encontrar duplicados
+  private findDuplicates(records: any[]): any[] {
+    const uniqueProducts = new Set();
+    const duplicates = [];
+
+    for (const record of records) {
+      // Define qué hace que un producto sea único
+      // Por ejemplo, combinación de nombre y otros campos clave
+      const uniqueKey = `${record.nombre_producto}-${record.id_categoria}-${record.id_marca}`;
+
+      if (uniqueProducts.has(uniqueKey)) {
+        duplicates.push(record);
+      } else {
+        uniqueProducts.add(uniqueKey);
+      }
+    }
+
+    return duplicates;
   }
 }

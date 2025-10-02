@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/prisma/prisma.service';
 export interface RawMonthlyVentas {
   mes: bigint;
@@ -53,21 +54,17 @@ export class SalesService {
 
   async getVentasDiasSemanaMes() {
     try {
-      // Obtener la fecha actual en Lima
-      const now = new Date().toLocaleString('en-US', { timeZone: 'America/Lima' });
-      const currentDate = new Date(now);
-
-      // Ventas del día
+      // Consultas utilizando Prisma para obtener ventas
       const ventasHoy = await this.prisma.$queryRaw`
         SELECT 
-          COUNT(id_venta) as total_ventas, 
+          COUNT(id_venta) as total_ventas,
           COALESCE(SUM(precio_total), 0) as monto_total
         FROM tb_ventas
-        WHERE DATE(created_at) = CURRENT_DATE
-        AND estado_venta = 'COMPLETADA'
+        WHERE 
+          DATE(created_at) = CURRENT_DATE 
+          AND estado_venta = 'COMPLETADA'
       `;
 
-      // Ventas de la semana
       const ventasSemana = await this.prisma.$queryRaw`
         SELECT 
           COALESCE(SUM(precio_total), 0) as monto_total
@@ -77,7 +74,6 @@ export class SalesService {
           AND estado_venta = 'COMPLETADA'
       `;
 
-      // Ventas del mes
       const ventasMes = await this.prisma.$queryRaw`
         SELECT 
           COALESCE(SUM(precio_total), 0) as monto_total
@@ -105,7 +101,6 @@ export class SalesService {
       throw error;
     }
   }
-
   async obtenerVentasMensuales(): Promise<MonthlyVentas[]> {
     const ventasMensuales = await this.prisma.$queryRaw<RawMonthlyVentas[]>`
       SELECT 
@@ -135,26 +130,20 @@ export class SalesService {
 
   async obtenerComprasDiezDias() {
     try {
-      // Obtener la fecha actual
       const fechaActual = new Date();
 
-      // Arreglo para almacenar los resultados
       const resultados = [];
 
-      // Iterar para obtener los totales de los últimos 10 días
       for (let i = 0; i < 10; i++) {
-        // Calcular la fecha para cada día
         const fecha = new Date(fechaActual);
         fecha.setDate(fechaActual.getDate() - i);
 
-        // Establecer el inicio y fin del día
         const inicioDelDia = new Date(fecha);
         inicioDelDia.setHours(0, 0, 0, 0);
 
         const finDelDia = new Date(fecha);
         finDelDia.setHours(23, 59, 59, 999);
 
-        // Consultar el total de compras para ese día
         const totalComprasDia = await this.prisma.tb_compra.aggregate({
           _sum: {
             compra_total: true,
@@ -167,13 +156,11 @@ export class SalesService {
           },
         });
 
-        // Formatear la fecha para mostrar solo la fecha
-        const fechaFormateada = fecha.toISOString().split('T')[0];
+        const dia = fecha.getDate();
 
-        // Agregar al resultado
         resultados.push({
-          dia: fechaFormateada,
-          total: totalComprasDia._sum.compra_total || 0,
+          dia,
+          total: totalComprasDia._sum.compra_total || 0, // Total como número
         });
       }
 
@@ -182,5 +169,160 @@ export class SalesService {
       console.error('Error al obtener las compras de los últimos 10 días:', error);
       throw new Error('No se pudieron recuperar las compras');
     }
+  }
+
+  async getTopProductos(): Promise<any[]> {
+    const topProductos = await this.prisma.tb_detalle_venta.groupBy({
+      by: ['id_producto'],
+      _sum: {
+        cantidad: true,
+      },
+      orderBy: {
+        _sum: {
+          cantidad: 'desc',
+        },
+      },
+      take: 5,
+    });
+
+    const productosConDetalles = await Promise.all(
+      topProductos.map(async (producto) => {
+        const detalles = await this.prisma.tb_productos.findUnique({
+          where: { id_producto: producto.id_producto },
+        });
+        return {
+          ...producto,
+          nombre: detalles?.nombre_producto,
+        };
+      }),
+    );
+
+    return productosConDetalles;
+  }
+
+  async alertaProductoStock() {
+    try {
+      const productosConBajoStock = await this.prisma.tb_productos.findMany({
+        where: {
+          stock: {
+            lte: 1,
+          },
+          is_active: true,
+        },
+        select: {
+          id_producto: true,
+          nombre_producto: true,
+          stock: true,
+        },
+      });
+
+      const alertas = productosConBajoStock.map((producto) => ({
+        id: producto.id_producto,
+        nombre: producto.nombre_producto,
+        stock: producto.stock,
+        mensaje: `Alerta de stock bajo: ${producto.nombre_producto} tiene solo ${producto.stock} unidades disponibles`,
+      }));
+
+      return {
+        totalProductosBajoStock: alertas.length,
+        alertas,
+      };
+    } catch (error) {
+      // Manejo de errores
+      throw new Error(`Error al obtener alertas de stock: ${error.message}`);
+    }
+  }
+
+  async ventaAlAnio() {
+    const currentYear = new Date().getFullYear();
+
+    const ventasPorMes = await this.prisma.tb_ventas.groupBy({
+      by: ['created_at'],
+      where: {
+        created_at: {
+          gte: new Date(`${currentYear}-01-01`),
+          lte: new Date(`${currentYear}-12-31`),
+        },
+        estado_venta: 'COMPLETADA',
+      },
+      _sum: {
+        precio_total: true,
+      },
+      orderBy: {
+        created_at: 'asc',
+      },
+    });
+
+    // Transformar resultados a un formato más legible
+    const resumenVentas = {
+      anio: currentYear,
+      totalAnual: new Decimal(0),
+      ventasPorMes: Array(12)
+        .fill(0)
+        .map((_, index) => ({
+          mes: index + 1,
+          total: new Decimal(0),
+        })),
+    };
+
+    ventasPorMes.forEach((venta) => {
+      if (venta.created_at) {
+        const mes = venta.created_at.getMonth();
+        const montoVenta = venta._sum.precio_total || new Decimal(0);
+
+        // Usar métodos de Decimal para suma
+        resumenVentas.ventasPorMes[mes].total =
+          resumenVentas.ventasPorMes[mes].total.plus(montoVenta);
+        resumenVentas.totalAnual = resumenVentas.totalAnual.plus(montoVenta);
+      }
+    });
+
+    return resumenVentas;
+  }
+
+  async comprasAlAnio() {
+    const currentYear = new Date().getFullYear();
+
+    const comprasPorMes = await this.prisma.tb_compra.groupBy({
+      by: ['fecha_compra'],
+      where: {
+        fecha_compra: {
+          gte: new Date(`${currentYear}-01-01`),
+          lte: new Date(`${currentYear}-12-31`),
+        },
+      },
+      _sum: {
+        compra_total: true,
+      },
+      orderBy: {
+        fecha_compra: 'asc',
+      },
+    });
+
+    // Transformar resultados a un formato más legible
+    const resumenCompras = {
+      anio: currentYear,
+      totalAnual: new Decimal(0),
+      comprasPorMes: Array(12)
+        .fill(0)
+        .map((_, index) => ({
+          mes: index + 1,
+          total: new Decimal(0),
+        })),
+    };
+
+    comprasPorMes.forEach((compra) => {
+      if (compra.fecha_compra) {
+        const mes = compra.fecha_compra.getMonth();
+        const montoCompra = compra._sum.compra_total || new Decimal(0);
+
+        // Usar métodos de Decimal para suma
+        resumenCompras.comprasPorMes[mes].total =
+          resumenCompras.comprasPorMes[mes].total.plus(montoCompra);
+        resumenCompras.totalAnual = resumenCompras.totalAnual.plus(montoCompra);
+      }
+    });
+
+    return resumenCompras;
   }
 }

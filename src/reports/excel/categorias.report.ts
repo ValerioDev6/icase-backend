@@ -1,5 +1,5 @@
-import { Workbook } from 'exceljs';
 import { tb_categorias as Categoria } from '@prisma/client';
+import { Workbook } from 'exceljs';
 
 export const getCategoriasExcelReport = async (options: {
   categorias: Categoria[];

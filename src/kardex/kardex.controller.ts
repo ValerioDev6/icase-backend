@@ -1,11 +1,12 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { KardexService } from './kardex.service';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
+import { FilterKardexDto } from 'src/common/dtos/pagination-kardex.dto';
 import { CreateKardexDto } from './dto/create-kardex.dto';
 import { UpdateKardexDto } from './dto/update-kardex.dto';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
-import { FilterKardexDto } from 'src/common/dtos/pagination-kardex.dto';
+import { KardexService } from './kardex.service';
 
+@SkipThrottle()
 @Controller('kardex')
 export class KardexController {
   constructor(private readonly kardexService: KardexService) {}

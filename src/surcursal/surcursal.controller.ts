@@ -3,7 +3,8 @@ import { CreateSurcursalDto } from './dto/create-surcursal.dto';
 import { UpdateSurcursalDto } from './dto/update-surcursal.dto';
 import { PaginationDto } from '../common/dtos/pagination.dto';
 import { SurcursalService } from './surcursal.service';
-
+import { SkipThrottle } from '@nestjs/throttler';
+@SkipThrottle()
 @Controller('surcursal')
 export class SurcursalController {
   constructor(private readonly surcursalService: SurcursalService) {}

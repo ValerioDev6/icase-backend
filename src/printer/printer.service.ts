@@ -4,10 +4,10 @@ import { BufferOptions, CustomTableLayout, TDocumentDefinitions } from 'pdfmake/
 
 const fonts = {
   Roboto: {
-    normal: 'fonts/Roboto-Regular.ttf',
-    bold: 'fonts/Roboto-Medium.ttf',
-    italics: 'fonts/Roboto-Italic.ttf',
-    bolditalics: 'fonts/Roboto-MediumItalic.ttf',
+    normal: 'fonts/roboto-regular.woff',
+    bold: 'fonts/roboto-medium.woff',
+    italics: 'fonts/roboto-italic.woff',
+    bolditalics: 'fonts/roboto-mediumitalic.woff',
   },
 };
 const customTableLayouts: Record<string, CustomTableLayout> = {

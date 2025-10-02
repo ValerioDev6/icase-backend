@@ -3,6 +3,7 @@ import { Workbook } from 'exceljs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { getCategoriasExcelReport, getMarcasExcelReport } from 'src/reports/excel';
 import { getComprasExcelReport } from 'src/reports/excel/compras_excel.report';
+import { getKardexExcelReport } from 'src/reports/excel/kardex_report_excel';
 import { getProductoExcelReport } from 'src/reports/excel/producto.report';
 import { getVentasExcelReport } from 'src/reports/excel/ventas_excel_report';
 // import { Response } from 'express';
@@ -287,6 +288,28 @@ export class BasicReportsExcelService {
     } catch (error) {
       console.error('Error generando excel ', error);
       throw new Error('Failed to geneate excel reprot');
+    }
+  }
+
+  async getKardexExcel(): Promise<Workbook> {
+    try {
+      const kardex = await this.prisma.tb_kardex.findMany({
+        include: {
+          tb_productos: {
+            select: {
+              nombre_producto: true,
+            },
+          },
+        },
+        orderBy: {
+          fecha_movimiento: 'desc',
+        },
+      });
+
+      return await getKardexExcelReport({ kardex });
+    } catch (error) {
+      console.error('Error generating Kardex Excel:', error);
+      throw new Error('Failed to generate Kardex Excel report');
     }
   }
 }

@@ -2,7 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { MetodoPagosService } from './metodo-pagos.service';
 import { CreateMetodoPagoDto } from './dto/create-metodo-pago.dto';
 import { UpdateMetodoPagoDto } from './dto/update-metodo-pago.dto';
-
+import { SkipThrottle } from '@nestjs/throttler';
+@SkipThrottle()
 @Controller('metodo-pagos')
 export class MetodoPagosController {
   constructor(private readonly metodoPagosService: MetodoPagosService) {}

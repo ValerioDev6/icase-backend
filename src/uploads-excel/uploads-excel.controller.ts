@@ -6,10 +6,10 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { UploadsExcelService } from './uploads-excel.service';
-import { Logger } from 'winston';
 import { FileInterceptor } from '@nestjs/platform-express';
-
+import { SkipThrottle } from '@nestjs/throttler';
+import { UploadsExcelService } from './uploads-excel.service';
+@SkipThrottle()
 @Controller('uploads-excel')
 export class UploadsExcelController {
   constructor(private readonly uploadsExcelService: UploadsExcelService) {}

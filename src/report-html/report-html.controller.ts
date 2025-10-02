@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import { ReportHtmlService } from './report-html.service';
 import { Response } from 'express';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Controller('report-html')
 export class ReportHtmlController {
   constructor(private readonly reportHtmlService: ReportHtmlService) {}

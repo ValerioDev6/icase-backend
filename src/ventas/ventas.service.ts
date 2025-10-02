@@ -6,95 +6,15 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { RequestVentaDto } from './dto/create-venta.dto';
-import { UpdateVentaDto } from './dto/update-venta.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma, tb_personal } from '@prisma/client';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
-import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interfaces';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RequestVentaDto } from './dto/create-venta.dto';
 
 @Injectable()
 export class VentasService {
   constructor(private readonly prisma: PrismaService) {}
   private readonly logger = new Logger('VentasService');
-
-  // async create(requestVenta: RequestVentaDto, personal: tb_personal) {
-  //   this.logger.log('Iniciando registro de venta', { data: requestVenta });
-
-  //   return await this.prisma.$transaction(async (prisma) => {
-  //     try {
-  //       // Validar que vengan productos
-  //       if (!requestVenta.detalles?.length) {
-  //         throw new BadRequestException('La venta debe tener productos');
-  //       }
-
-  //       // Calcular totales desde los productos
-  //       const subtotal = requestVenta.detalles.reduce(
-  //         (sum, detalle) => sum + detalle.cantidad * Number(detalle.precio_unitario),
-  //         0,
-  //       );
-
-  //       // Calcular impuesto (IGV)
-  //       const impuesto = subtotal * 0.18; // IGV del 18%
-  //       const precio_total = subtotal + impuesto;
-
-  //       // Crear la venta principal usando el ID del personal desde el token
-  //       const venta = await prisma.tb_ventas.create({
-  //         data: {
-  //           ...requestVenta,
-  //           id_personal: personal.id, // Usar el ID del personal desde el token
-  //           subtotal,
-  //           impuesto,
-  //           precio_total,
-  //           estado_venta: requestVenta.estado_venta || 'COMPLETADA',
-  //         },
-  //       });
-
-  //       this.logger.log('Venta principal creada', { id_venta: venta.id_venta });
-
-  //       // Crear los detalles de la venta
-  //       const detallesPromises = requestVenta.detalles.map((detalle) =>
-  //         prisma.tb_detalle_venta.create({
-  //           data: {
-  //             id_venta: venta.id_venta,
-  //             id_producto: detalle.id_producto,
-  //             cantidad: detalle.cantidad,
-  //             precio_unitario: detalle.precio_unitario,
-  //             subtotal: detalle.cantidad * Number(detalle.precio_unitario),
-  //             precio: detalle.precio,
-  //             descuento: detalle.descuento || 0,
-  //           },
-  //         }),
-  //       );
-
-  //       const detallesCreados = await Promise.all(detallesPromises);
-
-  //       this.logger.log('Detalles de venta creados', {
-  //         id_venta: venta.id_venta,
-  //         total_detalles: detallesCreados.length,
-  //       });
-
-  //       return {
-  //         message: 'Venta registrada con éxito',
-  //         venta: {
-  //           ...venta,
-  //           detalles: detallesCreados,
-  //         },
-  //       };
-  //     } catch (error) {
-  //       this.logger.error('Error al registrar venta', {
-  //         error: error.message,
-  //         stack: error.stack,
-  //       });
-
-  //       if (error instanceof BadRequestException) {
-  //         throw error;
-  //       }
-
-  //       throw new InternalServerErrorException('Error al registrar la venta: ' + error.message);
-  //     }
-  //   });
-  // }
 
   async create(requestVenta: RequestVentaDto, personal: tb_personal) {
     this.logger.log('Iniciando registro de venta', { data: requestVenta });
@@ -119,7 +39,8 @@ export class VentasService {
         const venta = await prisma.tb_ventas.create({
           data: {
             id_personal: personal.id_personal,
-            id_cliente: requestVenta.id_cliente || null,
+            id_sucursal: requestVenta.id_sucursal,
+            id_cliente: requestVenta.id_cliente,
             tipo_documento: requestVenta.tipo_documento || 'BOLETA',
             numero_documento: requestVenta.numero_documento,
             serie_documento: requestVenta.serie_documento,
@@ -213,7 +134,7 @@ export class VentasService {
           skip: (page - 1) * limit,
           take: limit,
           orderBy: {
-            fecha_venta: 'desc',
+            fecha_venta: 'asc',
           },
           where: whereCondition,
           include: {

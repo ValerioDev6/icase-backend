@@ -5,8 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreatePersonalDto } from './dto/create-personal.dto';
-import { UpdatePersonalDto } from './dto/update-personal.dto';
+import { CreateEncuestaDto, CreatePersonalDto } from './dto/create-personal.dto';
+import { UpdatePersonalDetailDto, UpdatePersonalDto } from './dto/update-personal.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -114,6 +114,43 @@ export class PersonalService {
       this.handleExceptions(error);
     }
   }
+  async findAllEncuestas(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10, search = '' } = paginationDto; // Quitamos el filtro de búsqueda
+
+    try {
+      const [encuestas, total] = await Promise.all([
+        this.prisma.tb_encuesta.findMany({
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: { fecha: 'desc' }, // Ordenar por fecha de la encuesta (descendente)
+          include: {
+            tb_personal: {
+              include: {
+                tb_personas: true, // Incluir los datos de la persona asociada al personal
+              },
+            },
+          },
+        }),
+        this.prisma.tb_encuesta.count(), // Contamos el total de encuestas sin el filtro de búsqueda
+      ]);
+
+      return {
+        info: {
+          page,
+          limit,
+          total,
+          next: `${process.env.HOST_API}/personal?page=${page + 1}&limit=${limit}&search=${search}`,
+          prev:
+            page > 1
+              ? `${process.env.HOST_API}/personal?page=${page - 1}&limit=${limit}&search=${search}`
+              : null,
+        },
+        encuestas,
+      };
+    } catch (error) {
+      this.handleExceptions(error); // Manejo de excepciones
+    }
+  }
 
   async findOne(id: string) {
     try {
@@ -141,6 +178,35 @@ export class PersonalService {
     } catch (error) {
       this.handleExceptions(error);
     }
+  }
+
+  async update(personalId: string, updateDto: UpdatePersonalDetailDto) {
+    const personal = await this.prisma.tb_personal.findUnique({
+      where: { id_personal: personalId },
+      select: { id_persona: true },
+    });
+
+    if (!personal) {
+      throw new NotFoundException('Personal record not found');
+    }
+
+    await this.prisma.tb_personas.update({
+      where: { id_persona: personal.id_persona },
+      data: {
+        nombres: updateDto.nombres,
+        apellido_paterno: updateDto.apellido_paterno,
+        apellido_materno: updateDto.apellido_materno,
+        direccion_persona: updateDto.direccion_persona,
+        id_tipo_telefono: updateDto.id_tipo_telefono,
+        telefono: updateDto.telefono,
+      },
+    });
+
+    // Retorna un mensaje de éxito
+    return {
+      message: 'Actualización realizada con éxito',
+      success: true,
+    };
   }
 
   async findOneAll(id: string) {
@@ -186,9 +252,9 @@ export class PersonalService {
     }
   }
 
-  update(id: number, updatePersonalDto: UpdatePersonalDto) {
-    return `This action updates a #${id} personal`;
-  }
+  // update(id: string, updatePersonalDto: UpdatePersonalDto) {
+  //   return `This action updates a #${id} personal`;
+  // }
 
   async remove(id: string) {
     try {
@@ -200,6 +266,36 @@ export class PersonalService {
         throw new NotFoundException(`Personal with Id ${id} not found`);
       }
       return { message: `Personal con ID ${id} eliminado correctamente` };
+    } catch (error) {
+      this.handleExceptions(error);
+    }
+  }
+
+  async validatePersonal(idPersonal: string) {
+    const personal = await this.prisma.tb_personal.findUnique({
+      where: { id_personal: idPersonal },
+      select: { id_personal: true },
+    });
+
+    if (!personal) {
+      throw new NotFoundException('Personal record not found');
+    }
+
+    return personal;
+  }
+
+  async createEncuesta(idPersonal: string, createEncuestaDto: CreateEncuestaDto) {
+    try {
+      await this.validatePersonal(idPersonal);
+
+      const encuesta = this.prisma.tb_encuesta.create({
+        data: {
+          id_personal: idPersonal,
+          ...createEncuestaDto,
+          fecha: new Date(),
+        },
+      });
+      return encuesta;
     } catch (error) {
       this.handleExceptions(error);
     }

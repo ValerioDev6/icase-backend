@@ -4,7 +4,6 @@ import { footerSection } from './sections/footer.section';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface CompraData {
-  id_compra: string;
   proveedor_ruc?: string;
   numero_documento?: string;
   compra_subtotal?: Decimal;
@@ -81,10 +80,9 @@ export const getComprasReport = (options: ReportOptions): TDocumentDefinitions =
         layout: 'customLayout01',
         table: {
           headerRows: 1,
-          widths: ['8%', '15%', '12%', '12%', '10%', '10%', '10%', '10%', '13%'],
+          widths: ['15%', '12%', '15%', '10%', '10%', '10%', '12%', '15%'],
           body: [
             [
-              { text: 'ID', style: { bold: true }, color: 'white' },
               { text: 'Proveedor', style: { bold: true }, color: 'white' },
               { text: 'RUC', style: { bold: true }, color: 'white' },
               { text: 'Nº Documento', style: { bold: true }, color: 'white' },
@@ -95,7 +93,6 @@ export const getComprasReport = (options: ReportOptions): TDocumentDefinitions =
               { text: 'Fecha', style: { bold: true }, color: 'white' },
             ],
             ...compras.map((compra) => [
-              { text: compra.id_compra.slice(-8) }, // Mostrar solo últimos 8 caracteres
               { text: compra.tb_proveedores?.nombre_comercial || 'Sin proveedor' },
               { text: compra.proveedor_ruc || 'Sin RUC' },
               { text: compra.numero_documento || 'Sin documento' },

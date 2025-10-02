@@ -1,18 +1,33 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, Req, UseGuards } from '@nestjs/common';
-import { VentasService } from './ventas.service';
-import { RequestVentaDto } from './dto/create-venta.dto';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
-import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interfaces';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { tb_personal } from '@prisma/client';
 import { Auth } from 'src/auth/decorators/auth.decorator';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { RequestVentaDto } from './dto/create-venta.dto';
+import { VentasService } from './ventas.service';
+
 @Auth()
+@SkipThrottle()
 @Controller('ventas')
 export class VentasController {
   constructor(private readonly ventasService: VentasService) {}
 
   @Post()
   create(@Body() createVentaDto: RequestVentaDto, @GetUser() user: tb_personal) {
+    console.log('Usuario recibido:', user);
+    if (!user) {
+      throw new BadRequestException('Usuario no autenticado');
+    }
     return this.ventasService.create(createVentaDto, user);
   }
   @Get()

@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { EmpresaDto, PersonaDto, PersonaService } from './persona.service';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
-
+import { SkipThrottle } from '@nestjs/throttler';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+@SkipThrottle()
 @Controller('persona')
 export class PersonaController {
   constructor(private readonly personaService: PersonaService) {}
@@ -13,8 +15,8 @@ export class PersonaController {
   }
 
   @Get()
-  findAll() {
-    return this.personaService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.personaService.findAll(paginationDto);
   }
   @Get('personal')
   getPersonasPersonalCombo() {
@@ -32,17 +34,17 @@ export class PersonaController {
   }
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.personaService.findOne(+id);
+    return this.personaService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePersonaDto: UpdatePersonaDto) {
-    return this.personaService.update(+id, updatePersonaDto);
+    return this.personaService.update(id, updatePersonaDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.personaService.remove(+id);
+    return this.personaService.remove(id);
   }
 
   @Get('consulta/:dni')

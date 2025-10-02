@@ -115,7 +115,7 @@ export const getVentasReport = (options: ReportOptions): TDocumentDefinitions =>
         layout: 'customLayout01',
         table: {
           headerRows: 1,
-          widths: ['15%', '10%', '15%', '10%', '8%', '10%', '15%', '15%', '15%'],
+          widths: ['15%', '10%', '10%', '10%', '8%', '10%', '17%', '22%', '15%'],
           body: [
             [
               { text: 'Cliente', style: { bold: true }, color: 'white' },

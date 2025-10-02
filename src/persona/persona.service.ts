@@ -1,3 +1,4 @@
+import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
   Injectable,
@@ -5,12 +6,12 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { firstValueFrom } from 'rxjs';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePersonaDto } from './dto/create-persona.dto';
 import { UpdatePersonaDto } from './dto/update-persona.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
 export class PersonaDto {
   nombres: string;
   apellidoPaterno: string;
@@ -36,7 +37,6 @@ export class PersonaService {
   ) {}
 
   private readonly logger = new Logger('PersonaService');
-
   async create(createPersonaDto: CreatePersonaDto) {
     try {
       return await this.prisma.$transaction(async (prisma) => {
@@ -46,7 +46,6 @@ export class PersonaService {
           },
           include: {
             tb_sexo: true,
-            tb_direccion: true,
             tb_tipo_persona: true,
             tb_tipo_documento: true,
             tb_tipo_telefono: true,
@@ -60,11 +59,54 @@ export class PersonaService {
       this.handleExceptions(error);
     }
   }
-  findAll() {
-    return `This action returns all persona`;
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10, search = '' } = paginationDto;
+    try {
+      const [personas, total] = await Promise.all([
+        this.prisma.tb_personas.findMany({
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: { nombres: 'desc' },
+          where: {
+            nombres: {
+              contains: search,
+            },
+          },
+          include: {
+            tb_sexo: true,
+            tb_tipo_persona: true,
+            tb_pais: true,
+            tb_tipo_documento: true,
+            tb_telefonos_persona: true,
+          },
+        }),
+        this.prisma.tb_personas.count({
+          where: {
+            nombres: {
+              contains: search,
+            },
+          },
+        }),
+      ]);
+
+      return {
+        info: {
+          page,
+          limit,
+          total,
+          next: `${process.env.HOST_API}/persona?page=${page + 1}&limit=${limit}&search=${search}`,
+          prev:
+            page > 1
+              ? `${process.env.HOST_API}/persona?page=${page - 1}&limit=${limit}&search=${search}`
+              : null,
+        },
+        personas,
+      };
+    } catch (error) {
+      this.handleExceptions(error);
+    }
   }
 
-  // Obtener personas por tipo para combos/selects
   async getPersonasByTipo(tipoPersona: string) {
     try {
       const personas = await this.prisma.tb_personas.findMany({
@@ -91,16 +133,66 @@ export class PersonaService {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} persona`;
+  async findOne(id: string) {
+    try {
+      const persona = await this.prisma.tb_personas.findUnique({
+        where: { id_persona: id },
+        include: {
+          tb_sexo: true,
+          tb_tipo_persona: true,
+          tb_pais: true,
+          tb_tipo_documento: true,
+          tb_telefonos_persona: true,
+        },
+      });
+      if (!persona) {
+        throw new NotFoundException(`persona with id ${id} not found`);
+      }
+      return persona;
+    } catch (error) {
+      this.handleExceptions(error);
+    }
   }
 
-  update(id: number, updatePersonaDto: UpdatePersonaDto) {
-    return `This action updates a #${id} persona`;
+  async update(id: string, updatePersonaDto: UpdatePersonaDto) {
+    try {
+      const existingPersona = await this.prisma.tb_personas.findUnique({
+        where: { id_persona: id },
+      });
+      if (!existingPersona) {
+        throw new NotFoundException(`personal with id : ${id} not found`);
+      }
+      const updatedPersona = await this.prisma.tb_personas.update({
+        where: { id_persona: id },
+        data: { ...updatePersonaDto },
+      });
+      return updatedPersona;
+    } catch (error) {
+      this.handleExceptions(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} persona`;
+  async remove(id: string) {
+    try {
+      const persona = await this.prisma.tb_personas.findUnique({
+        where: { id_persona: id },
+      });
+
+      if (!persona) {
+        throw new NotFoundException(`Persona with ID ${id} not found`);
+      }
+
+      await this.prisma.tb_personas.delete({
+        where: { id_persona: id },
+      });
+
+      return {
+        status: true,
+        message: `Persona with Id: ${id} has been deleted`,
+      };
+    } catch (error) {
+      this.handleExceptions(error);
+    }
   }
 
   private handleExceptions(error: any) {

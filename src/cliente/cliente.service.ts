@@ -15,6 +15,7 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 export class ClienteService {
   constructor(private readonly prisma: PrismaService) {}
   private readonly logger = new Logger('ClienteService');
+
   async create(createClienteDto: CreateClienteDto) {
     try {
       return await this.prisma.$transaction(async (prisma) => {

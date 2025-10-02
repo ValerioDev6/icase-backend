@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { ComprasService } from './compras.service';
 import { RequestCompraDto } from './dto/create-compra.dto';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
-
+@SkipThrottle()
 @Controller('compras')
 export class ComprasController {
   constructor(private readonly comprasService: ComprasService) {}

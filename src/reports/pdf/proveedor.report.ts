@@ -55,7 +55,7 @@ export const getProveedoresReport = (options: ReportOptions): TDocumentDefinitio
         layout: 'customLayout01',
         table: {
           headerRows: 1,
-          widths: ['15%', '15%', '10%', '10%', '15%', '15%', '10%', '10%'],
+          widths: ['15%', '15%', '10%', '10%', '15%', '12%', '10%', '15%'],
           body: [
             [
               { text: 'Nombre Comercial', style: { bold: true }, color: 'white' },
@@ -92,7 +92,6 @@ export const getProveedoresReport = (options: ReportOptions): TDocumentDefinitio
               },
               {
                 text: formatFecha(proveedor.ultima_compra),
-                alignment: 'center',
               },
             ]),
             [

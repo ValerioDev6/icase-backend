@@ -1,7 +1,9 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { BasicReportsExcelService } from './basic-reports-excel.service';
 import { Response } from 'express';
+import { SkipThrottle } from '@nestjs/throttler';
 
+@SkipThrottle()
 @Controller('reports-excel')
 export class BasicReportsExcelController {
   constructor(private readonly basicReportsExcelService: BasicReportsExcelService) {}
@@ -75,9 +77,20 @@ export class BasicReportsExcelController {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-
     response.setHeader('Content-Disposition', 'attachment; filename=ventas-report.xlsx');
+    await workbook.xlsx.write(response);
+    response.end();
+  }
 
+  @Get('kardex')
+  async getKardexExcel(@Res() response: Response) {
+    const workbook = await this.basicReportsExcelService.getKardexExcel();
+
+    response.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    response.setHeader('Content-Disposition', 'attachment; filename=kardex-report.xlsx');
     await workbook.xlsx.write(response);
     response.end();
   }

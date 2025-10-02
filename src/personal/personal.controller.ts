@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PersonalService } from './personal.service';
-import { CreatePersonalDto } from './dto/create-personal.dto';
-import { UpdatePersonalDto } from './dto/update-personal.dto';
+import { CreateEncuestaDto, CreatePersonalDto } from './dto/create-personal.dto';
+import { UpdatePersonalDetailDto, UpdatePersonalDto } from './dto/update-personal.dto';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
-// @Auth()
+import { SkipThrottle } from '@nestjs/throttler';
+@SkipThrottle()
 @Controller('personal')
 export class PersonalController {
   constructor(private readonly personalService: PersonalService) {}
@@ -13,9 +14,18 @@ export class PersonalController {
     return this.personalService.create(createPersonalDto);
   }
 
+  @Post(':id/encuesta')
+  createEncuesta(@Param('id') id: string, @Body() createEncuestaDto: CreateEncuestaDto) {
+    return this.personalService.createEncuesta(id, createEncuestaDto);
+  }
   @Get()
   findAll(@Query() paginationDto: PaginationDto) {
     return this.personalService.findAll(paginationDto);
+  }
+
+  @Get('encuesta')
+  findAllEncuestaPersonal(@Query() paginationDto: PaginationDto) {
+    return this.personalService.findAllEncuestas(paginationDto);
   }
 
   @Get(':id')
@@ -29,8 +39,8 @@ export class PersonalController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePersonalDto: UpdatePersonalDto) {
-    return this.personalService.update(+id, updatePersonalDto);
+  update(@Param('id') id: string, @Body() updatePersonalDto: UpdatePersonalDetailDto) {
+    return this.personalService.update(id, updatePersonalDto);
   }
 
   @Delete(':id')

@@ -6,6 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from 'src/prisma/prima.module';
+import { LogModule } from 'src/monitoreo/monitoreo.module';
 
 @Module({
   controllers: [AuthController],
@@ -13,6 +14,7 @@ import { PrismaModule } from 'src/prisma/prima.module';
   imports: [
     ConfigModule,
     PrismaModule,
+    LogModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
